@@ -1,11 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enhanced Platformer Game</title>
-     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <!-- Loading Screen -->
@@ -28,8 +27,9 @@
         </div>
     </div>
 
-    <!-- Instructions Screen -->
-    <div id="instructionsScreen">
+    <!-- Instructions Screen - REPLACE YOUR EXISTING instructionsScreen div with this -->
+<div id="instructionsScreen">
+    <div class="instructions-container">
         <h2 class="game-title">How to Play</h2>
         <div class="controls-grid">
             <div class="control-item">
@@ -56,36 +56,73 @@
                 <p>ESC: Back to menu</p>
             </div>
         </div>
-        <button class="btn" onclick="startGame()">🎮 START PLAYING</button>
-        <button class="btn" onclick="backToStart()">⬅️ BACK</button>
+        
+        <!-- Fixed Button Container -->
+        <div class="instruction-buttons">
+            <button class="btn" onclick="startGame()">🎮 START PLAYING</button>
+            <button class="btn" onclick="backToStart()">⬅️ BACK</button>
+        </div>
     </div>
-
-    <!-- Game Container -->
+</div>
+    <!-- Game Container - Full Screen -->
     <div id="gameContainer">
-        <div class="ui-panel">
-            <div class="ui-item">
-                <span>💰 Score:</span>
-                <span id="score">0</span>
+        <!-- Top UI Bar -->
+        <div class="ui-top-bar">
+            <div class="ui-left">
+                <div class="ui-item score-display">
+                    <span class="ui-icon">💰</span>
+                    <span id="score">0</span>
+                </div>
+                <div class="ui-item lives-display">
+                    <span class="ui-icon">❤️</span>
+                    <span id="lives">3</span>
+                    <div id="lives-hearts" class="hearts-container"></div>
+                </div>
+                <div class="ui-item level-display">
+                    <span class="ui-icon">🏆</span>
+                    <span id="level">1</span>
+                </div>
             </div>
-            <div class="ui-item">
-                <span>❤️ Lives:</span>
-                <span id="lives">3</span>
-                <span id="lives-hearts"></span>
-            </div>
-            <div class="ui-item">
-                <span>🏆 Level:</span>
-                <span id="level">1</span>
-            </div>
-            <div class="ui-item">
-                <button id="pauseBtn" class="btn" onclick="togglePause()" style="padding: 5px 10px;">⏸️</button>
+            
+            <div class="ui-right">
+                <button id="pauseBtn" class="ui-btn" onclick="togglePause()" title="Pause/Resume">
+                    <span id="pauseIcon">⏸️</span>
+                </button>
+                <button id="muteGameBtn" class="ui-btn" onclick="toggleMute()" title="Mute/Unmute">
+                    <span id="muteIcon">🔊</span>
+                </button>
+                <button id="fullscreenBtn" class="ui-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+                    <span>⛶</span>
+                </button>
             </div>
         </div>
 
-        <canvas id="gameCanvas" width="1000" height="500"></canvas>
+        <!-- Game Canvas - Full Screen -->
+        <canvas id="gameCanvas"></canvas>
 
+        <!-- Mini Map (Optional) -->
+        <div class="mini-map" id="miniMap">
+            <canvas id="miniMapCanvas" width="200" height="100"></canvas>
+        </div>
+
+        <!-- Game Stats Overlay -->
+        <div class="stats-overlay" id="statsOverlay">
+            <div class="stat-item">
+                <span class="stat-label">Time:</span>
+                <span id="gameTime">00:00</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Coins:</span>
+                <span id="coinsCollected">0</span>
+            </div>
+        </div>
+
+        <!-- Debug Info -->
         <div class="debug-info" id="debugInfo">
             <div id="fps">FPS: 60</div>
             <div>Press Ctrl+D to toggle debug mode</div>
+            <div id="playerPos">Player: (0, 0)</div>
+            <div id="gameState">State: Playing</div>
         </div>
     </div>
 
@@ -124,7 +161,19 @@
         </div>
     </div>
 
-    <!-- Audio Elements (working with your actual files) -->
+    <!-- Pause Overlay -->
+    <div id="pauseOverlay" class="pause-overlay">
+        <div class="pause-content">
+            <h2>⏸️ PAUSED</h2>
+            <p>Press P or Space to Resume</p>
+            <div class="pause-buttons">
+                <button class="btn" onclick="togglePause()">▶️ RESUME</button>
+                <button class="btn" onclick="backToStart()">🏠 MAIN MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Elements -->
     <audio id="backgroundMusicGround" preload="auto" loop>
         <source src="assets/ground-theme.mp3" type="audio/mpeg">
     </audio>
@@ -157,8 +206,45 @@
         <source src="assets/game-over.mp3" type="audio/mpeg">
     </audio>
 
-
     <script src="game.js"></script>
+    <script>
+        // Fullscreen functionality
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
 
+        // Auto-resize canvas
+        function resizeCanvas() {
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas && document.getElementById('gameContainer').style.display !== 'none') {
+                const container = document.getElementById('gameContainer');
+                const topBar = document.querySelector('.ui-top-bar');
+                const availableHeight = window.innerHeight - (topBar ? topBar.offsetHeight : 60);
+                
+                canvas.style.width = '100vw';
+                canvas.style.height = availableHeight + 'px';
+                
+                // Update canvas resolution while maintaining aspect ratio
+                const aspectRatio = 1000 / 500; // Original canvas ratio
+                canvas.width = Math.min(window.innerWidth, availableHeight * aspectRatio);
+                canvas.height = canvas.width / aspectRatio;
+            }
+        }
+
+        // Listen for fullscreen changes
+        document.addEventListener('fullscreenchange', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initialize canvas size when game starts
+        window.addEventListener('load', () => {
+            setTimeout(resizeCanvas, 100);
+        });
+    </script>
 </body>
 </html>
